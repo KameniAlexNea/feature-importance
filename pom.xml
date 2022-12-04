@@ -1,0 +1,85 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+
+  <parent>
+    <groupId>github.com</groupId>
+    <artifactId>f-imp</artifactId>
+    <version>1.3</version>
+  </parent>
+
+  <groupId>com.github.app</groupId>
+  <artifactId>python-apps</artifactId>
+  <version>0.0.1a1+SNAPSHOT</version>
+  <packaging>pom</packaging>
+  <name>F-Importance - Python Apps</name>
+
+  <scm>
+    <connection>scm:git:ssh://git@${scm.server}:KameniAlexNea/${project.artifactId}.git</connection>
+    <developerConnection>scm:git:ssh://git@${scm.server}:KameniAlexNea/${project.artifactId}.git</developerConnection>
+    <tag>HEAD</tag>
+    <url>https://${scm.server}/KameniAlexNea/${project.artifactId}</url>
+  </scm>
+
+  <properties>
+    <ci.jobname>KameniAlexNea%2F${project.artifactId}</ci.jobname>
+  </properties>
+
+  <build>
+    <plugins>
+      <plugin>
+        <groupId>org.codehaus.mojo</groupId>
+        <artifactId>build-helper-maven-plugin</artifactId>
+        <executions>
+          <execution>
+            <id>add-pdf</id>
+            <goals>
+              <goal>attach-artifact</goal>
+            </goals>
+            <configuration>
+              <artifacts>
+                <artifact>
+                  <file>${project.build.directory}/docs/latex/f_importance.pdf</file>
+                  <type>pdf</type>
+                  <classifier>doc</classifier>
+                </artifact>
+              </artifacts>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+      <plugin>
+        <groupId>org.codehaus.mojo</groupId>
+        <artifactId>exec-maven-plugin</artifactId>
+        <executions>
+          <execution>
+            <id>docs</id>
+            <goals>
+              <goal>exec</goal>
+            </goals>
+            <phase>prepare-package</phase>
+            <configuration>
+              <executable>bash</executable>
+              <arguments>
+                <argument>-c</argument>
+                <argument>. ${project.build.directory}/.venv/bin/activate; tox -e docs</argument>
+              </arguments>
+            </configuration>
+          </execution>
+          <execution>
+            <id>pdf</id>
+            <goals>
+              <goal>exec</goal>
+            </goals>
+            <phase>prepare-package</phase>
+            <configuration>
+              <executable>make</executable>
+              <workingDirectory>${project.build.directory}/docs/latex</workingDirectory>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+    </plugins>
+  </build>
+
+</project>
