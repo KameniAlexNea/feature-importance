@@ -2,6 +2,7 @@ import itertools as it
 from typing import List
 from typing import Union
 
+import numpy as np
 import pandas as pd
 from sklearn.model_selection import KFold
 
@@ -20,6 +21,7 @@ class Data:
         self._targets = targets
         self._columns = [col for col in dataset.columns if col not in self._targets]
         self._dataset = dataset
+        self._split = True
         if shuffle:
             self._dataset = self._dataset.sample(frac=1.0)
         self._shuffle = shuffle
@@ -50,7 +52,7 @@ class Data:
             col = [col]
         X = self._dataset[[i for i in self._columns if i not in col]].copy()
         y = self._dataset[self._targets].copy()
-        if self._val_rate < 1:
+        if not self._split:
             return col, X, y
         return (
             col,
@@ -71,14 +73,46 @@ class DataFold(Data):
     ) -> None:
         super().__init__(dataset, targets, n_gram, val_rate, shuffle)
         self._n_fold = n_fold
-        self._val_rate = 0
+        self._split = False
 
     def __item__(self, pos: int):
         col, X, y = super().__item__(pos)
         splits = [
-            ((X.loc[train_index], y[train_index]), X.loc[test_index], y[test_index])
+            ((X.loc[train_index], y[train_index]), (X.loc[test_index], y[test_index]))
             for train_index, test_index in KFold(
                 self._n_fold, shuffle=self._shuffle
             ).split(X, y)
         ]
+        return col, splits
+
+
+class DataSample(Data):
+    def __init__(
+        self,
+        dataset: pd.DataFrame,
+        targets: Union[str, list],
+        n_gram=(1, 1),
+        val_rate=0.15,
+        shuffle=True,
+        n_sample=5,
+    ) -> None:
+        super().__init__(dataset, targets, n_gram, val_rate, shuffle)
+        self._n_sample = n_sample
+        self._split = False
+
+    def _get_split_X_y(self):
+        perm = np.random.permutation(len(self._dataset))
+        return perm[: -self._val_rate], perm[-self._val_rate :]
+
+    def __item__(self, pos: int):
+        col, X, y = super().__item__(pos)
+        splits = []
+        for _ in range(self._n_sample):
+            train_index, test_index = self._get_split_X_y()
+            splits.append(
+                (
+                    (X.loc[train_index], y[train_index]),
+                    (X.loc[test_index], y[test_index]),
+                )
+            )
         return col, splits
