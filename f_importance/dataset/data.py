@@ -46,8 +46,11 @@ class Data:
     def _build_n_gram(self):
         grams = [""]  # first index for base accuracy
         for i in range(self._n_gram[0], min(len(self._columns), self._n_gram[1] + 1)):
-            grams.extend(it.combinations(self._columns), i)
+            grams.extend(it.combinations(self._columns, i))
         self._grams = grams
+
+    def __len__(self):
+        return len(self._dataset)
 
     def __iter__(self):
         self._pos = 0
@@ -60,8 +63,8 @@ class Data:
         self._pos += 1
         return val
 
-    def __item__(self, pos: int):
-        col: Union[List[str], str] = self._n_gram[pos]
+    def __getitem__(self, pos: int):
+        col: Union[List[str], str] = self._grams[pos]
         if isinstance(col, str):
             col = [col]
         X = self._dataset[[i for i in self._columns if i not in col]].copy()
@@ -83,7 +86,7 @@ class DataFold(Data):
     n_fold is an integer representing the number of folds for cross-validation
 
     DataFold class has one method:
-        __item__ which returns the dataset and target column(s) based on the position of the iterator and 
+        __getitem__ which returns the dataset and target column(s) based on the position of the iterator and 
     splits the dataset into folds according to the n_fold value.
     """
     def __init__(
@@ -99,10 +102,10 @@ class DataFold(Data):
         self._n_fold = n_fold
         self._split = False
 
-    def __item__(self, pos: int):
-        col, X, y = super().__item__(pos)
+    def __getitem__(self, pos: int):
+        col, X, y = super().__getitem__(pos)
         splits = [
-            ((X.loc[train_index], y[train_index]), (X.loc[test_index], y[test_index]))
+            ((X.loc[train_index], y.loc[train_index]), (X.loc[test_index], y.loc[test_index]))
             for train_index, test_index in KFold(
                 self._n_fold, shuffle=self._shuffle
             ).split(X, y)
@@ -119,7 +122,7 @@ class DataSample(Data):
     n_sample is an integer representing the number of samples for random sampling
     
     DataSample class has several methods:
-        __item__ which returns the dataset and target column(s) based on the position of the iterator and 
+        __getitem__ which returns the dataset and target column(s) based on the position of the iterator and 
     splits the dataset into samples according to the n_sample value.
         _get_split_X_y which splits the dataset into training and validation set randomly
     """
@@ -140,15 +143,15 @@ class DataSample(Data):
         perm = np.random.permutation(len(self._dataset))
         return perm[: -self._val_rate], perm[-self._val_rate :]
 
-    def __item__(self, pos: int):
-        col, X, y = super().__item__(pos)
+    def __getitem__(self, pos: int):
+        col, X, y = super().__getitem__(pos)
         splits = []
         for _ in range(self._n_sample):
             train_index, test_index = self._get_split_X_y()
             splits.append(
                 (
-                    (X.loc[train_index], y[train_index]),
-                    (X.loc[test_index], y[test_index]),
+                    (X.loc[train_index], y.loc[train_index]),
+                    (X.loc[test_index], y.loc[test_index]),
                 )
             )
         return col, splits
