@@ -1,6 +1,7 @@
 import pandas as pd
 from typing import Union, List
 import itertools as it
+from sklearn.model_selection import KFold
 
 
 class Data:
@@ -35,3 +36,16 @@ class Data:
         if isinstance(col, str):
             col = [col]
         return col, self._dataset[[i for i in self._columns if i not in col]].copy(), self._dataset[self._targets].copy()
+
+
+class DataFold(Data):
+    def __init__(self, dataset: pd.DataFrame, targets: Union[str, list], n_gram=(1, 1), n_fold=5) -> None:
+        super().__init__(dataset, targets, n_gram)
+        self._n_fold = n_fold
+
+    def __item__(self, pos: int):
+        col, X, y = super().__item__(pos)
+        splits = [
+            ((X.loc[train_index], y[train_index]), X.loc[test_index], y[test_index]) for train_index, test_index in KFold(self._n_fold).split(X, y)
+        ]
+        return col, splits
