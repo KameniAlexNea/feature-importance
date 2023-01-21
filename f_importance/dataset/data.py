@@ -1,3 +1,7 @@
+"""
+This code defines three classes: Data, DataFold, and DataSample.
+"""
+
 import itertools as it
 from typing import List
 from typing import Union
@@ -8,6 +12,16 @@ from sklearn.model_selection import KFold
 
 
 class Data:
+    """
+    Data is a class for handling a dataset and its targets, it's used as a parent class for other two classes.
+    Data class takes in dataset, targets, n_gram, val_rate, and shuffle.
+
+        dataset is a DataFrame that needs to be handled
+        targets is a string or list of strings representing the target column(s) of the dataset
+        n_gram is a tuple representing the minimum and maximum number of columns to be used in a feature set
+        val_rate is a float representing the percentage of data to be used for validation
+        shuffle is a boolean representing whether the dataset should be shuffled or not
+    """
     def __init__(
         self,
         dataset: pd.DataFrame,
@@ -62,6 +76,16 @@ class Data:
 
 
 class DataFold(Data):
+    """
+    DataFold is a class that inherits from the Data class, it's used for handling cross-validation.
+    DataFold class takes in dataset, targets, n_gram, val_rate, shuffle, and n_fold.
+
+    n_fold is an integer representing the number of folds for cross-validation
+
+    DataFold class has one method:
+        __item__ which returns the dataset and target column(s) based on the position of the iterator and 
+    splits the dataset into folds according to the n_fold value.
+    """
     def __init__(
         self,
         dataset: pd.DataFrame,
@@ -87,6 +111,18 @@ class DataFold(Data):
 
 
 class DataSample(Data):
+    """
+    
+    DataSample is a class that inherits from the Data class, it's used for handling random sampling.
+    DataSample class takes in dataset, targets, n_gram, val_rate, shuffle, and n_sample.
+
+    n_sample is an integer representing the number of samples for random sampling
+    
+    DataSample class has several methods:
+        __item__ which returns the dataset and target column(s) based on the position of the iterator and 
+    splits the dataset into samples according to the n_sample value.
+        _get_split_X_y which splits the dataset into training and validation set randomly
+    """
     def __init__(
         self,
         dataset: pd.DataFrame,
