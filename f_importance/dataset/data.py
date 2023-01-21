@@ -1,22 +1,35 @@
-import pandas as pd
-from typing import Union, List
 import itertools as it
+from typing import List
+from typing import Union
+
+import pandas as pd
 from sklearn.model_selection import KFold
 
 
 class Data:
-    def __init__(self, dataset: pd.DataFrame, targets: Union[str, list], n_gram=(1, 1)) -> None:
+    def __init__(
+        self,
+        dataset: pd.DataFrame,
+        targets: Union[str, list],
+        n_gram=(1, 1),
+        val_rate=0.15,
+        shuffle=True,
+    ) -> None:
         if isinstance(targets, str):
             targets = [targets]
         self._targets = targets
         self._columns = [col for col in dataset.columns if col not in self._targets]
         self._dataset = dataset
+        if shuffle:
+            self._dataset = self._dataset.sample(frac=1.0)
+        self._shuffle = shuffle
         self._n_gram = n_gram
+        self._val_rate = int(val_rate * len(self._dataset))
         self._build_n_gram()
 
     def _build_n_gram(self):
-        grams = []
-        for i in range(self._n_gram[0], min(len(self._columns), self._n_gram[1]+1)):
+        grams = [""]  # first index for base accuracy
+        for i in range(self._n_gram[0], min(len(self._columns), self._n_gram[1] + 1)):
             grams.extend(it.combinations(self._columns), i)
         self._grams = grams
 
@@ -35,17 +48,37 @@ class Data:
         col: Union[List[str], str] = self._n_gram[pos]
         if isinstance(col, str):
             col = [col]
-        return col, self._dataset[[i for i in self._columns if i not in col]].copy(), self._dataset[self._targets].copy()
+        X = self._dataset[[i for i in self._columns if i not in col]].copy()
+        y = self._dataset[self._targets].copy()
+        if self._val_rate < 1:
+            return col, X, y
+        return (
+            col,
+            (X.head(len(X) - self._val_rate), y.head(len(X) - self._val_rate)),
+            (X.tail(self._val_rate), y.tail(self._val_rate)),
+        )
 
 
 class DataFold(Data):
-    def __init__(self, dataset: pd.DataFrame, targets: Union[str, list], n_gram=(1, 1), n_fold=5) -> None:
-        super().__init__(dataset, targets, n_gram)
+    def __init__(
+        self,
+        dataset: pd.DataFrame,
+        targets: Union[str, list],
+        n_gram=(1, 1),
+        val_rate=0.15,
+        shuffle=True,
+        n_fold=5,
+    ) -> None:
+        super().__init__(dataset, targets, n_gram, val_rate, shuffle)
         self._n_fold = n_fold
+        self._val_rate = 0
 
     def __item__(self, pos: int):
         col, X, y = super().__item__(pos)
         splits = [
-            ((X.loc[train_index], y[train_index]), X.loc[test_index], y[test_index]) for train_index, test_index in KFold(self._n_fold).split(X, y)
+            ((X.loc[train_index], y[train_index]), X.loc[test_index], y[test_index])
+            for train_index, test_index in KFold(
+                self._n_fold, shuffle=self._shuffle
+            ).split(X, y)
         ]
         return col, splits
