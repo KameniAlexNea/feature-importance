@@ -1,6 +1,8 @@
 import collections
 from typing import Union
 
+from concurrent.futures import ThreadPoolExecutor, as_completed
+
 import pandas as pd
 
 from f_importance.dataset import data
@@ -8,6 +10,8 @@ from f_importance.metrics import METRICS
 from f_importance.model import CLASSIFIERS
 from f_importance.model import REGRESSORS
 
+def train_pred_evaluate():
+    pass
 
 class Model:
     def __init__(
@@ -37,9 +41,10 @@ class Model:
         self._metric = METRICS[metric]
         self._n_split = n
         self._is_regression = -1 if is_regression else 1
+    
 
     def compute_contrib(self):
-        scores = collections.defaultdict(int)
+        scores = collections.defaultdict(float)
         cross_scores = collections.defaultdict(list)
         for col, splits in self._dataset:
             for (X_train, y_train), (X_test, y_test) in splits:
@@ -49,6 +54,7 @@ class Model:
                 scores[str(col)] += score
                 cross_scores[str(col)].append(score)
             scores[str(col)] /= len(splits)
+        for col, _ in self._dataset:
             if col != [""]:
                 scores[str(col)] = scores["['']"] - scores[str(col)]
         contrib_perfs = pd.DataFrame(
