@@ -21,6 +21,7 @@ class Model:
         val_rate=0.15,
         shuffle=True,
         n=5,
+        is_regression=False,
     ) -> None:
         self._model = (
             CLASSIFIERS[model_name]()
@@ -35,6 +36,7 @@ class Model:
         self._method = method
         self._metric = METRICS[metric]
         self._n_split = n
+        self._is_regression = -1 if is_regression else 1
 
     def compute_contrib(self):
         scores = collections.defaultdict(int)
@@ -43,7 +45,7 @@ class Model:
             for (X_train, y_train), (X_test, y_test) in splits:
                 self._model.fit(X_train, y_train)
                 preds = self._model.predict(X_test)
-                score = self._metric(preds, y_test)
+                score = self._is_regression * self._metric(preds, y_test)
                 scores[str(col)] += score
                 cross_scores[str(col)].append(score)
             scores[str(col)] /= len(splits)
