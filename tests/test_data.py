@@ -57,7 +57,7 @@ def test_get_item(data):
 
 
 def test_data_folder(data):
-    data_cls = DataFold(data, "y", (1, 1), 0.15, True, n_fold=5)
+    data_cls = DataFold(data, "y", (1, 1), 0.15, True, n=5)
 
     n = 0
     for col, splits in data_cls:
@@ -67,7 +67,7 @@ def test_data_folder(data):
 
 
 def test_data_sample(data):
-    data_cls = DataSample(data, "y", (1, 1), 0.15, True, n_sample=5)
+    data_cls = DataSample(data, "y", (1, 1), 0.15, True, n=5)
 
     n = 0
     for col, splits in data_cls:

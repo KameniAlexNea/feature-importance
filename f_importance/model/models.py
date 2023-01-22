@@ -4,9 +4,9 @@ from typing import Union
 import pandas as pd
 
 from f_importance.dataset import data
+from f_importance.metrics import METRICS
 from f_importance.model import CLASSIFIERS
 from f_importance.model import REGRESSORS
-from f_importance.metrics import METRICS
 
 
 class Model:
@@ -15,19 +15,20 @@ class Model:
         model_name: str,
         method: str,
         metric: str,
-        dataset_pth: str,
+        dataset: Union[str, pd.DataFrame],
         targets: Union[str, list],
         n_gram=(1, 1),
         val_rate=0.15,
         shuffle=True,
-        n=5
+        n=5,
     ) -> None:
         self._model = (
             CLASSIFIERS[model_name]()
             if model_name in CLASSIFIERS
             else REGRESSORS[model_name]()
         )
-        dataset = pd.read_csv(dataset_pth, low_memory=False)
+        if isinstance(dataset, str):
+            dataset = pd.read_csv(dataset, low_memory=False)
         self._dataset: Union[data.Data, data.DataFold, data.DataSample] = data.__dict__[
             method
         ](dataset, targets, n_gram, val_rate, shuffle, n)
@@ -43,14 +44,18 @@ class Model:
                 self._model.fit(X_train, y_train)
                 preds = self._model.predict(X_test)
                 score = self._metric(preds, y_test)
-                scores[col] += score
-                cross_scores[col].append(score)
-            scores[col] /= len(splits)
-            if col != "":
-                scores[col] = scores[""] - scores[col]
-        contrib_perfs = pd.DataFrame(scores.values(), columns=["Contribution"], index=scores.keys())
-        cross_perfs = pd.DataFrame(
-            cross_scores.values(), columns=["Split"+str(i) for i in range(self._n_split)], index=cross_scores.keys()
+                scores[str(col)] += score
+                cross_scores[str(col)].append(score)
+            scores[str(col)] /= len(splits)
+            if col != [""]:
+                scores[str(col)] = scores["['']"] - scores[str(col)]
+        contrib_perfs = pd.DataFrame(
+            scores.values(), columns=["Contribution"], index=scores.keys()
         )
-        perfs = contrib_perfs.merge(cross_perfs)
-        return perfs
+        cross_perfs = pd.DataFrame(
+            cross_scores.values(),
+            columns=["Split" + str(i) for i in range(self._n_split)],
+            index=cross_scores.keys(),
+        )
+        perfs = pd.concat((contrib_perfs, cross_perfs), axis=1)
+        return perfs.sort_values(by="Contribution", ascending=False)
