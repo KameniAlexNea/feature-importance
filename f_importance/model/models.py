@@ -1,4 +1,8 @@
 import collections
+import os
+from concurrent.futures import ThreadPoolExecutor
+from concurrent.futures import as_completed
+from concurrent.futures import wait
 from typing import Union
 
 import pandas as pd
@@ -7,6 +11,24 @@ from f_importance.dataset import data
 from f_importance.metrics import METRICS
 from f_importance.model import CLASSIFIERS
 from f_importance.model import REGRESSORS
+
+
+def _train_pred_evaluate(col: str, splits: list, model, metric):
+    scores = []
+    for (X_train, y_train), (X_test, y_test) in splits:
+        model.fit(X_train, y_train)
+        preds = model.predict(X_test)
+        score = metric(preds, y_test)
+        scores.append(score)
+    return col, scores
+
+
+def get_model(model_name):
+    return (
+        CLASSIFIERS[model_name]()
+        if model_name in CLASSIFIERS
+        else REGRESSORS[model_name]()
+    )
 
 
 class Model:
@@ -22,12 +44,9 @@ class Model:
         shuffle=True,
         n=5,
         is_regression=False,
+        n_jobs=os.cpu_count(),
     ) -> None:
-        self._model = (
-            CLASSIFIERS[model_name]()
-            if model_name in CLASSIFIERS
-            else REGRESSORS[model_name]()
-        )
+        self._model = model_name
         if isinstance(dataset, str):
             dataset = pd.read_csv(dataset, low_memory=False)
         self._dataset: Union[data.Data, data.DataFold, data.DataSample] = data.__dict__[
@@ -37,20 +56,32 @@ class Model:
         self._metric = METRICS[metric]
         self._n_split = n
         self._is_regression = -1 if is_regression else 1
+        self._n_jobs = n_jobs
 
     def compute_contrib(self):
-        scores = collections.defaultdict(int)
+        scores = collections.defaultdict(float)
         cross_scores = collections.defaultdict(list)
-        for col, splits in self._dataset:
-            for (X_train, y_train), (X_test, y_test) in splits:
-                self._model.fit(X_train, y_train)
-                preds = self._model.predict(X_test)
-                score = self._is_regression * self._metric(preds, y_test)
-                scores[str(col)] += score
-                cross_scores[str(col)].append(score)
-            scores[str(col)] /= len(splits)
-            if col != [""]:
-                scores[str(col)] = scores["['']"] - scores[str(col)]
+        futures = []
+        with ThreadPoolExecutor(self._n_jobs) as executor:
+            for col, splits in self._dataset:
+                futures.append(
+                    executor.submit(
+                        _train_pred_evaluate,
+                        col=col,
+                        splits=splits,
+                        model=get_model(self._model),
+                        metric=self._metric,
+                    )
+                )
+            for future in as_completed(futures):
+                col, perfs = future.result()
+                scores[str(col)] = sum(perfs) / len(perfs)
+                cross_scores[str(col)] = perfs
+
+        wait(futures)
+        for col in scores:
+            if col != "['']":
+                scores[col] = self._is_regression * (scores["['']"] - scores[col])
         contrib_perfs = pd.DataFrame(
             scores.values(), columns=["Contribution"], index=scores.keys()
         )
