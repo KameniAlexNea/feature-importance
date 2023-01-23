@@ -6,6 +6,8 @@ from concurrent.futures import wait
 from typing import Union
 
 import pandas as pd
+from sklearn.multioutput import ClassifierChain
+from sklearn.multioutput import RegressorChain
 
 from f_importance.dataset import data
 from f_importance.metrics import METRICS
@@ -23,12 +25,19 @@ def _train_pred_evaluate(col: str, splits: list, model, metric):
     return col, scores
 
 
-def get_model(model_name):
-    return (
+def get_model(model_name, is_m_output):
+    base_model = (
         CLASSIFIERS[model_name]()
         if model_name in CLASSIFIERS
         else REGRESSORS[model_name]()
     )
+    if is_m_output:
+        base_model = (
+            ClassifierChain(base_model)
+            if model_name in CLASSIFIERS
+            else RegressorChain(base_model)
+        )
+    return base_model
 
 
 class Model:
@@ -47,6 +56,7 @@ class Model:
         n_jobs=os.cpu_count(),
     ) -> None:
         self._model = model_name
+        self._is_m_output = (not isinstance(targets, str)) and (len(targets) > 1)
         if isinstance(dataset, str):
             dataset = pd.read_csv(dataset, low_memory=False)
         self._dataset: Union[data.Data, data.DataFold, data.DataSample] = data.__dict__[
@@ -69,7 +79,7 @@ class Model:
                         _train_pred_evaluate,
                         col=col,
                         splits=splits,
-                        model=get_model(self._model),
+                        model=get_model(self._model, self._is_m_output),
                         metric=self._metric,
                     )
                 )
