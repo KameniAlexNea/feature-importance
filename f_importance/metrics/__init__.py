@@ -4,4 +4,4 @@
 """
 from sklearn import metrics
 
-METRICS = metrics.__dict__
+METRICS = {name: metrics.__dict__[name] for name in metrics.__all__}
