@@ -9,18 +9,17 @@ from sklearn.ensemble import GradientBoostingClassifier
 from sklearn.ensemble import GradientBoostingRegressor
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.ensemble import RandomForestRegressor
+from sklearn.tree import DecisionTreeClassifier
+from sklearn.tree import DecisionTreeRegressor
 from xgboost import XGBClassifier
 from xgboost import XGBRegressor
-
-from f_importance.model.gini import GINIClassifier
-from f_importance.model.gini import GINIRegressor
 
 CLASSIFIERS = dict(
     XGBClassifier=XGBClassifier,
     LGBMClassifier=LGBMClassifier,
     RandomForestClassifier=RandomForestClassifier,
     GradientBoostingClassifier=GradientBoostingClassifier,
-    GINIClassifier=GINIClassifier,
+    DecisionTreeClassifier=DecisionTreeClassifier,
 )
 
 REGRESSORS = dict(
@@ -28,5 +27,5 @@ REGRESSORS = dict(
     LGBMRegressor=LGBMRegressor,
     RandomForestRegressor=RandomForestRegressor,
     GradientBoostingRegressor=GradientBoostingRegressor,
-    GINIRegressor=GINIRegressor,
+    DecisionTreeRegressor=DecisionTreeRegressor,
 )

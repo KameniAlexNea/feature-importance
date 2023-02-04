@@ -113,7 +113,7 @@ def test_compute3(data_reg):
 
 def test_compute4(data_reg):
     model = Model(
-        "XGBRegressor",
+        "GradientBoostingRegressor",
         "DataSample",
         "mean_absolute_error",
         data_reg,
@@ -131,7 +131,24 @@ def test_compute4(data_reg):
 def test_compute5(data):
     data["A1"] = data["A1"].round()
     model = Model(
-        "XGBClassifier",
+        "LGBMClassifier",
+        "DataSample",
+        "accuracy_score",
+        data,
+        ["y", "A1"],
+        (1, 1),
+        0.15,
+        True,
+        2,
+    )
+    contrib = model.compute_contrib()
+    assert len(contrib) == 3
+
+
+def test_compute6(data):
+    data["A1"] = data["A1"].round()
+    model = Model(
+        "DecisionTreeClassifier",
         "DataSample",
         "accuracy_score",
         data,

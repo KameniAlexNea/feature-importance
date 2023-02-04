@@ -90,8 +90,8 @@ class Model:
 
         wait(futures)
         for col in scores:
-            if col != "['']":
-                scores[col] = self._is_regression * (scores["['']"] - scores[col])
+            if col != "[]":
+                scores[col] = self._is_regression * (scores["[]"] - scores[col])
         contrib_perfs = pd.DataFrame(
             scores.values(), columns=["Contribution"], index=scores.keys()
         )

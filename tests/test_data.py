@@ -21,7 +21,7 @@ def test_check_n_grams(data):
     data_cls = Data(data, "y", (1, 2), 0.15, True)
     assert len(data_cls._grams) == 7
 
-    assert all(i in data_cls._grams for i in [("A1", "A2"), ("A1", "A3"), ("A2", "A3")])
+    assert all(i in data_cls._grams for i in [["A1", "A2"], ["A1", "A3"], ["A2", "A3"]])
 
 
 def test_iterator(data):
@@ -49,7 +49,7 @@ def test_iterator2(data):
 def test_get_item(data):
     data_cls = Data(data, "y", (1, 1), 0.15, True)
     col, (x_train, y_train), (x_test, y_test) = data_cls[0]
-    assert col == [""]
+    assert col == []
     assert all(i in x_train.columns for i in ["A1", "A2", "A3"])
     assert len(y_train.columns) == 1
     assert "y" in y_test.columns

@@ -29,25 +29,29 @@ class Data:
         targets: Union[str, list],
         n_gram=(1, 1),
         val_rate=0.15,
-        shuffle=True,
+        shuffle=False,
+        data_sample=False,
     ) -> None:
         if isinstance(targets, str):
             targets = [targets]
         self._targets = targets
-        self._columns = [col for col in dataset.columns if col not in self._targets]
+        self._columns = list(
+            filter(lambda col: col not in self._targets, dataset.columns)
+        )
         self._dataset = dataset
         self._split = True
         if shuffle:
-            self._dataset = self._dataset.sample(frac=1.0)
+            self._dataset[self._dataset.columns] = self._dataset.sample(frac=1.0).values
         self._shuffle = shuffle
         self._n_gram = n_gram
         self._val_rate = int(val_rate * len(self._dataset))
+        self.data_sample = data_sample
         self._build_n_gram()
 
     def _build_n_gram(self):
-        grams = [""]  # first index for base accuracy
+        grams = [[]]  # first index for base accuracy
         for i in range(self._n_gram[0], min(len(self._columns), self._n_gram[1] + 1)):
-            grams.extend(it.combinations(self._columns, i))
+            grams.extend([list(k) for k in it.combinations(self._columns, i)])
         self._grams = grams
 
     def __len__(self):
@@ -65,10 +69,10 @@ class Data:
         return val
 
     def __getitem__(self, pos: int):
-        col: Union[List[str], str] = self._grams[pos]
-        if isinstance(col, str):
-            col = [col]
-        X = self._dataset[[i for i in self._columns if i not in col]].copy()
+        col: List[str] = self._grams[pos]
+        X = self._dataset[
+            [i for i in self._columns if (i not in col) or self.data_sample]
+        ].copy()
         y = self._dataset[self._targets].copy()
         if not self._split:
             return col, X, y
@@ -141,7 +145,7 @@ class DataSample(Data):
         shuffle=True,
         n=5,
     ) -> None:
-        super().__init__(dataset, targets, n_gram, val_rate, shuffle)
+        super().__init__(dataset, targets, n_gram, val_rate, shuffle, data_sample=True)
         self._n_sample = n
         self._split = False
 
@@ -149,15 +153,21 @@ class DataSample(Data):
         perm = np.random.permutation(len(self._dataset))
         return perm[: -self._val_rate], perm[-self._val_rate :]
 
+    def _permute(self, X: pd.DataFrame, pos: int, col: list[str]):
+        X = X.copy()
+        if pos != 0:
+            X[col] = X[col].sample(frac=1.0).values
+        return X
+
     def __getitem__(self, pos: int):
         col, X, y = super().__getitem__(pos)
         splits = []
+        train_index, test_index = self._get_split_X_y()
         for _ in range(self._n_sample):
-            train_index, test_index = self._get_split_X_y()
             splits.append(
                 (
                     (X.loc[train_index], y.loc[train_index]),
-                    (X.loc[test_index], y.loc[test_index]),
+                    (self._permute(X.loc[test_index], pos, col), y.loc[test_index]),
                 )
             )
         return col, splits
