@@ -5,16 +5,17 @@ from concurrent.futures import as_completed
 from concurrent.futures import wait
 from typing import Union
 
-import pandas as pd
 import numpy as np
+import pandas as pd
 from sklearn.multioutput import ClassifierChain
 from sklearn.multioutput import RegressorChain
-from sklearn.ensemble import VotingClassifier, VotingRegressor
 
 from f_importance.dataset import data
 from f_importance.metrics import METRICS
 from f_importance.model import CLASSIFIERS
 from f_importance.model import REGRESSORS
+from f_importance.model.voting import VotingClassifier
+from f_importance.model.voting import VotingRegressor
 
 
 def _train_pred_evaluate(col: str, splits: list, model, metric, refit=True):
@@ -27,10 +28,12 @@ def _train_pred_evaluate(col: str, splits: list, model, metric, refit=True):
         scores.append(score)
     return col, scores
 
+
 def _fit_voting_classifier(splits: list, model_name: str, is_m_output: bool, scorer):
     def _softmax(x, coef):
         x = np.array(x) * coef
         return np.exp(x) / (1 + np.exp(x))
+
     models = []
     scores = []
     is_classif = 1 if model_name in CLASSIFIERS else -1
@@ -43,8 +46,6 @@ def _fit_voting_classifier(splits: list, model_name: str, is_m_output: bool, sco
         scores.append(score)
     clazz = VotingClassifier if is_classif == 1 else VotingRegressor
     model = clazz(models, weights=_softmax(scores, is_classif))
-    model.__sklearn_is_fitted__ = lambda: True
-    model.estimators_ = models
     return model
 
 
@@ -77,7 +78,7 @@ class Model:
         n=5,
         is_regression=False,
         n_jobs=os.cpu_count(),
-        refit=None
+        refit=None,
     ) -> None:
         self._model = model_name
         self._is_m_output = (not isinstance(targets, str)) and (len(targets) > 1)
@@ -101,9 +102,13 @@ class Model:
         futures = []
         model = None
         if not self._refit:
-            assert self._method == "DataSample", "Misconfiguration, refit is False only if you're using Sample Strategy"
+            assert (
+                self._method == "DataSample"
+            ), "Misconfiguration, refit is False only if you're using Sample Strategy"
             # Train model here
-            model = _fit_voting_classifier(self._dataset[0][0], self._model, self._is_m_output, self._metric)
+            model = _fit_voting_classifier(
+                self._dataset[0][1], self._model, self._is_m_output, self._metric
+            )
         with ThreadPoolExecutor(self._n_jobs) as executor:
             for col, splits in self._dataset:
                 futures.append(
@@ -111,9 +116,11 @@ class Model:
                         _train_pred_evaluate,
                         col=col,
                         splits=splits,
-                        model=get_model(self._model, self._is_m_output) if self._refit else model,
+                        model=get_model(self._model, self._is_m_output)
+                        if self._refit
+                        else model,
                         metric=self._metric,
-                        refit=self._refit
+                        refit=self._refit,
                     )
                 )
             for future in as_completed(futures):
