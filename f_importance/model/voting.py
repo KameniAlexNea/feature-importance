@@ -1,7 +1,6 @@
 import collections
 
 import numpy as np
-import pandas as pd
 
 
 class Voting:
@@ -27,12 +26,13 @@ class VotingClassifier(Voting):
 
         preds = super().predict(X)
         res = [
-            pd.DataFrame(np.array([pred[:, i] for pred in preds]))
-            .apply(_apply_row, axis=0)
-            .values
+            np.apply_along_axis(
+                _apply_row, 1, np.array([pred[:, i] for pred in preds]).T
+            )
             for i in range(preds[0].shape[1])
         ]
-        return np.array(res)
+        res = np.array(res).T
+        return res
 
 
 class VotingRegressor(Voting):
@@ -42,5 +42,11 @@ class VotingRegressor(Voting):
 
     def predict(self, X):
         preds = super().predict(X)
-        preds = preds * self.weights.reshape((1, -1))
-        return preds.mean(axis=1)
+        preds = [
+            (
+                np.array([pred[:, i] for pred in preds]).T
+                * self.weights.reshape((1, -1))
+            ).sum(axis=1)
+            for i in range(preds[0].shape[1])
+        ]
+        return np.array(preds).T
