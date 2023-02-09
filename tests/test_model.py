@@ -11,16 +11,16 @@ from f_importance.model.models import get_model
 
 @fixture
 def data():
-    dat = np.random.rand(100, 3)
-    dat = pd.DataFrame(dat, columns=["A1", "A2", "A3"])
+    dat = np.random.rand(150, 5)
+    dat = pd.DataFrame(dat, columns=["A1", "A2", "A3", "A4", "A5"])
     dat["y"] = np.random.randint(0, 2, len(dat))
     return dat
 
 
 @fixture
 def data_reg():
-    dat = np.random.rand(100, 3)
-    dat = pd.DataFrame(dat, columns=["A1", "A2", "A3"])
+    dat = np.random.rand(150, 4)
+    dat = pd.DataFrame(dat, columns=["A1", "A2", "A3", "A4"])
     dat["y"] = dat["A1"] ** 2 - dat["A2"] * 2 + dat["A3"] * dat["A2"]
     return dat
 
@@ -33,7 +33,7 @@ def test_init(data):
     assert isinstance(
         get_model(model._model, model._is_m_output), CLASSIFIERS["XGBClassifier"]
     )
-    assert isinstance(model._dataset, dataset.__dict__["DataFold"])
+    assert isinstance(model._dataset, dataset.DataFold)
 
 
 def test_init_multi_output(data):
@@ -75,7 +75,7 @@ def test_compute(data):
         "XGBClassifier", "DataFold", "accuracy_score", data, "y", (1, 1), 0.15, True, 2
     )
     contrib = model.compute_contrib()
-    assert len(contrib) == 4
+    assert len(contrib) == len(data.columns)
 
 
 def test_compute2(data):
@@ -91,7 +91,8 @@ def test_compute2(data):
         2,
     )
     contrib = model.compute_contrib()
-    assert len(contrib) == 7
+    n = len(data.columns) - 1
+    assert len(contrib) == len(data.columns) + n * (n-1) // 2
 
 
 def test_compute3(data_reg):
@@ -108,7 +109,8 @@ def test_compute3(data_reg):
         True,
     )
     contrib = model.compute_contrib()
-    assert len(contrib) == 7
+    n = len(data_reg.columns) - 1
+    assert len(contrib) == 1 + n + n * (n - 1) // 2
 
 
 def test_compute4(data_reg):
@@ -125,7 +127,8 @@ def test_compute4(data_reg):
         True,
     )
     contrib = model.compute_contrib()
-    assert len(contrib) == 3
+    n = len(data_reg.columns) - 2
+    assert len(contrib) == 1 + n + n * (n - 1) // 2
 
 
 def test_compute5(data):
@@ -142,7 +145,7 @@ def test_compute5(data):
         2,
     )
     contrib = model.compute_contrib()
-    assert len(contrib) == 3
+    assert len(contrib) == len(data.columns) - 1
 
 
 def test_compute6(data):
@@ -159,4 +162,4 @@ def test_compute6(data):
         2,
     )
     contrib = model.compute_contrib()
-    assert len(contrib) == 3
+    assert len(contrib) == len(data.columns) - 1
