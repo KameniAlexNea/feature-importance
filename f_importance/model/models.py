@@ -5,6 +5,7 @@ from concurrent.futures import as_completed
 from concurrent.futures import wait
 from typing import Union
 
+import numpy as np
 import pandas as pd
 from sklearn.multioutput import ClassifierChain
 from sklearn.multioutput import RegressorChain
@@ -13,16 +14,39 @@ from f_importance.dataset import data
 from f_importance.metrics import METRICS
 from f_importance.model import CLASSIFIERS
 from f_importance.model import REGRESSORS
+from f_importance.model.voting import VotingClassifier
+from f_importance.model.voting import VotingRegressor
 
 
-def _train_pred_evaluate(col: str, splits: list, model, metric):
+def _train_pred_evaluate(col: str, splits: list, model, metric, refit=True):
     scores = []
     for (X_train, y_train), (X_test, y_test) in splits:
-        model.fit(X_train, y_train)
+        if refit:
+            model.fit(X_train, y_train)
         preds = model.predict(X_test)
         score = metric(preds, y_test)
         scores.append(score)
     return col, scores
+
+
+def _fit_voting_classifier(splits: list, model_name: str, is_m_output: bool, scorer):
+    def _softmax(x, coef):
+        x = np.array(x) * coef
+        return np.exp(x) / (1 + np.exp(x))
+
+    models = []
+    scores = []
+    is_classif = 1 if model_name in CLASSIFIERS else -1
+    for (X_train, y_train), (X_test, y_test) in splits:
+        model = get_model(model_name, is_m_output)
+        model.fit(X_train, y_train)
+        y_pred = model.predict(X_test)
+        score = scorer(y_pred, y_test)
+        models.append(model)
+        scores.append(score)
+    clazz = VotingClassifier if is_classif == 1 else VotingRegressor
+    model = clazz(models, weights=_softmax(scores, is_classif))
+    return model
 
 
 def get_model(model_name, is_m_output):
@@ -54,6 +78,7 @@ class Model:
         n=5,
         is_regression=False,
         n_jobs=os.cpu_count(),
+        refit=None,
     ) -> None:
         self._model = model_name
         self._is_m_output = (not isinstance(targets, str)) and (len(targets) > 1)
@@ -67,11 +92,23 @@ class Model:
         self._n_split = n
         self._is_regression = -1 if is_regression else 1
         self._n_jobs = n_jobs
+        if refit is None:
+            refit = method != "DataSample"
+        self._refit = refit
 
     def compute_contrib(self):
         scores = collections.defaultdict(float)
         cross_scores = collections.defaultdict(list)
         futures = []
+        model = None
+        if not self._refit:
+            assert (
+                self._method == "DataSample"
+            ), "Misconfiguration, refit is False only if you're using Sample Strategy"
+            # Train model here
+            model = _fit_voting_classifier(
+                self._dataset[0][1], self._model, self._is_m_output, self._metric
+            )
         with ThreadPoolExecutor(self._n_jobs) as executor:
             for col, splits in self._dataset:
                 futures.append(
@@ -79,8 +116,11 @@ class Model:
                         _train_pred_evaluate,
                         col=col,
                         splits=splits,
-                        model=get_model(self._model, self._is_m_output),
+                        model=get_model(self._model, self._is_m_output)
+                        if self._refit
+                        else model,
                         metric=self._metric,
+                        refit=self._refit,
                     )
                 )
             for future in as_completed(futures):
@@ -90,8 +130,8 @@ class Model:
 
         wait(futures)
         for col in scores:
-            if col != "['']":
-                scores[col] = self._is_regression * (scores["['']"] - scores[col])
+            if col != "[]":
+                scores[col] = self._is_regression * (scores["[]"] - scores[col])
         contrib_perfs = pd.DataFrame(
             scores.values(), columns=["Contribution"], index=scores.keys()
         )
