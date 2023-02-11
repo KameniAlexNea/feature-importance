@@ -4,6 +4,11 @@ import numpy as np
 
 
 class Voting:
+    """
+    The base class for creating a voting ensemble model. It has a `predict` method that aggregates the predictions
+    of multiple models.
+    """
+
     def __init__(self, models) -> None:
         self.models = models
 
@@ -13,11 +18,31 @@ class Voting:
 
 
 class VotingClassifier(Voting):
+    """
+    A class for creating a voting ensemble classifier. It aggregates the predictions of multiple classifiers by
+    taking a weighted average of their predictions.
+    """
+
     def __init__(self, models, weights: np.ndarray) -> None:
+        """
+        Initializes the VotingClassifier class.
+
+        :param models: a list of scikit-learn like models to be used for voting.
+        :type models: List[Model]
+        :param weights: an array of weights for each model. The shape of the array should be (n_models,).
+        :type weights: np.ndarray
+        """
         super().__init__(models)
         self.weights = weights
 
     def predict(self, X):
+        """
+        Makes predictions for the input `X` using the list of models passed during initialization.
+
+        :param X: input features
+        :type X: an array of predictions of shape (n_samples, n_classes)
+        """
+
         def _apply_row(row):
             data = collections.defaultdict(float)
             for clazz, weight in zip(row, self.weights):
@@ -36,11 +61,30 @@ class VotingClassifier(Voting):
 
 
 class VotingRegressor(Voting):
+    """
+    A class for creating a voting ensemble regressor. It aggregates the predictions of multiple regressors by
+    taking a weighted average of their predictions.
+    """
+
     def __init__(self, models, weights: np.ndarray) -> None:
+        """
+        Initializes the VotingRegressor class
+
+        :param models: a list of scikit-learn like models to be used for voting.
+        :type models: List[Model]
+        :param weights: an array of weights for each model. The shape of models
+        :type weights: np.ndarray
+        """
         super().__init__(models)
         self.weights = weights
 
     def predict(self, X):
+        """
+        Makes predictions for the input `X` using the list of models passed during initialization.
+
+        :param X: input features
+        :type X: an array of predictions of shape (n_samples, n_classes)
+        """
         preds = super().predict(X)
         preds = [
             (

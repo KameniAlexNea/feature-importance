@@ -92,7 +92,7 @@ def test_compute2(data):
     )
     contrib = model.compute_contrib()
     n = len(data.columns) - 1
-    assert len(contrib) == len(data.columns) + n * (n-1) // 2
+    assert len(contrib) == len(data.columns) + n * (n - 1) // 2
 
 
 def test_compute3(data_reg):

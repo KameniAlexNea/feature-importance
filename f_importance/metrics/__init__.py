@@ -1,6 +1,7 @@
 """
-    In this package, we manipulate everything
-    about metrics
+    In this package, we manipulate everything about metrics
+
+    It supports all sklearn metrics implementations
 """
 from sklearn import metrics
 

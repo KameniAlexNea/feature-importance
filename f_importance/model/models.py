@@ -19,6 +19,26 @@ from f_importance.model.voting import VotingRegressor
 
 
 def _train_pred_evaluate(col: str, splits: list, model, metric, refit=True):
+    """
+    is a private function used to evaluate the performance of a model on a dataset.
+    It trains the model and computes the prediction for each sample in the dataset.
+    The function takes the following arguments:
+
+    :param col: string, name of the column/feature in the dataset.
+    :type col: str
+    :param splits: list of tuples, each tuple consists of two arrays (X_train, y_train), (X_test, y_test)
+    representing the train and test data for a specific fold in the cross-validation
+    :type splits: list
+    :param model: machine learning model.
+    :type model: XGBoost
+    :param metric: scoring function used to evaluate the performance of the model.
+    :type metric: function
+    :param refit: boolean, whether to refit the model for each fold, defaults to True
+    :type refit: bool, optional
+    :return: The function returns the name of the column/feature and a list of scores,
+    each score is the evaluation result of the model on a fold in the cross-validation.
+    :rtype: str, list[float]
+    """
     scores = []
     for (X_train, y_train), (X_test, y_test) in splits:
         if refit:
@@ -30,6 +50,22 @@ def _train_pred_evaluate(col: str, splits: list, model, metric, refit=True):
 
 
 def _fit_voting_classifier(splits: list, model_name: str, is_m_output: bool, scorer):
+    """
+     is a private function used to fit a voting classifier/regressor on a dataset. It takes the following arguments:
+
+    :param splits: list of tuples, each tuple consists of two arrays (X_train, y_train), (X_test, y_test)
+    representing the train and test data for a specific fold in the cross-validation.
+    :type splits: list
+    :param model_name: string, name of the base model.
+    :type model_name: str
+    :param is_m_output: boolean, whether the model is a multi-output model.
+    :type is_m_output: bool
+    :param scorer: scoring function used to evaluate the performance of the model.
+    :type scorer: function
+    :return: The function returns the fitted voting classifier/regressor.
+    :rtype: Voting Model
+    """
+
     def _softmax(x, coef):
         x = np.array(x) * coef
         return np.exp(x) / (1 + np.exp(x))
@@ -49,7 +85,17 @@ def _fit_voting_classifier(splits: list, model_name: str, is_m_output: bool, sco
     return model
 
 
-def get_model(model_name, is_m_output):
+def get_model(model_name: str, is_m_output: bool):
+    """
+    is a function used to get the machine learning model. It takes the following arguments:
+
+    :param model_name: string, name of the model.
+    :type model_name: str
+    :param is_m_output: boolean, whether the model is a multi-output model.
+    :type is_m_output: bool
+    :return: The function returns the machine learning model, which can be a single model or a chain of models.
+    :rtype: XGBoost or Voting
+    """
     base_model = (
         CLASSIFIERS[model_name]()
         if model_name in CLASSIFIERS
@@ -65,6 +111,16 @@ def get_model(model_name, is_m_output):
 
 
 class Model:
+    """
+    is a class used to perform feature importance computation. It has the following attributes:
+
+    _model: string, name of the model.
+    _is_m_output: boolean, whether the model is a multi-output model.
+    _dataset: Data object, either Data, DataFold, or DataSample, which stores the preprocessed dataset and the splits for cross-validation.
+    _method: string, name of the method used for cross-validation, either "DataFold" or "DataSample".
+    _metric: scoring function used to evaluate the performance of the
+    """
+
     def __init__(
         self,
         model_name: str,
