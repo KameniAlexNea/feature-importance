@@ -197,9 +197,9 @@ class Model:
         wait(futures)  # wait while all thread finish
         for col in scores:
             if col != "[]":
-                scores[col] = self._is_regression * (scores[col] - scores["[]"])
+                scores[col] = self._is_regression * (scores["[]"] - scores[col])
         contrib_perfs = pd.DataFrame(
-            scores.values(), columns=["Contribution"], index=scores.keys()
+            scores.values(), columns=["Importance"], index=scores.keys()
         )
         cross_perfs = pd.DataFrame(
             cross_scores.values(),
@@ -207,4 +207,5 @@ class Model:
             index=cross_scores.keys(),
         )
         perfs = pd.concat((contrib_perfs, cross_perfs), axis=1)
-        return perfs.sort_values(by="Contribution", ascending=False)
+        perfs.index = perfs.index.map(lambda x: x[1:-1])
+        return perfs.sort_values(by="Importance", ascending=False)
