@@ -5,4 +5,7 @@
 """
 from sklearn import metrics
 
+"""
+List of proposed metrics same as sklearn metrics
+"""
 METRICS = {name: metrics.__dict__[name] for name in metrics.__all__}

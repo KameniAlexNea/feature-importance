@@ -115,9 +115,13 @@ class Model:
     is a class used to perform feature importance computation. It has the following attributes:
 
     _model: string, name of the model.
+
     _is_m_output: boolean, whether the model is a multi-output model.
+
     _dataset: Data object, either Data, DataFold, or DataSample, which stores the preprocessed dataset and the splits for cross-validation.
+
     _method: string, name of the method used for cross-validation, either "DataFold" or "DataSample".
+
     _metric: scoring function used to evaluate the performance of the
     """
 
@@ -153,6 +157,12 @@ class Model:
         self._refit = refit
 
     def compute_contrib(self):
+        """
+        Parallele computation of feature importance
+
+        :return: dataframe with features contribution
+        :rtype: pd.DataFrame
+        """
         scores = collections.defaultdict(float)
         cross_scores = collections.defaultdict(list)
         futures = []
@@ -184,10 +194,10 @@ class Model:
                 scores[str(col)] = sum(perfs) / len(perfs)
                 cross_scores[str(col)] = perfs
 
-        wait(futures)
+        wait(futures)  # wait while all thread finish
         for col in scores:
             if col != "[]":
-                scores[col] = self._is_regression * (scores["[]"] - scores[col])
+                scores[col] = self._is_regression * (scores[col] - scores["[]"])
         contrib_perfs = pd.DataFrame(
             scores.values(), columns=["Contribution"], index=scores.keys()
         )

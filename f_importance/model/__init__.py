@@ -14,6 +14,9 @@ from sklearn.tree import DecisionTreeRegressor
 from xgboost import XGBClassifier
 from xgboost import XGBRegressor
 
+"""
+CLASSIFIERS list of classification strategy supported in this package
+"""
 CLASSIFIERS = dict(
     XGBClassifier=XGBClassifier,
     LGBMClassifier=LGBMClassifier,
@@ -22,6 +25,9 @@ CLASSIFIERS = dict(
     DecisionTreeClassifier=DecisionTreeClassifier,
 )
 
+"""
+REGRESSORS list of regression strategy supported in this package
+"""
 REGRESSORS = dict(
     XGBRegressor=XGBRegressor,
     LGBMRegressor=LGBMRegressor,
@@ -29,3 +35,20 @@ REGRESSORS = dict(
     GradientBoostingRegressor=GradientBoostingRegressor,
     DecisionTreeRegressor=DecisionTreeRegressor,
 )
+
+
+"""
+List of supported methods
+"""
+__all__ = [
+    "XGBClassifier",
+    "LGBMClassifier",
+    "RandomForestClassifier",
+    "GradientBoostingClassifier",
+    "DecisionTreeClassifier",
+    "XGBRegressor",
+    "LGBMRegressor",
+    "RandomForestRegressor",
+    "GradientBoostingRegressor",
+    "DecisionTreeRegressor",
+]
