@@ -153,7 +153,7 @@ class DataSample(Data):
         perm = np.random.permutation(len(self._dataset))
         return perm[: -self._val_rate], perm[-self._val_rate :]
 
-    def _permute(self, X: pd.DataFrame, pos: int, col: list[str]):
+    def _permute(self, X: pd.DataFrame, pos: int, col: List[str]):
         X = X.copy()
         if pos != 0:
             X[col] = X[col].sample(frac=1.0).values
