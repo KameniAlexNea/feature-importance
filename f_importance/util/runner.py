@@ -52,6 +52,7 @@ def get_arguments() -> Namespace:
 
     parser.add_argument("--val_rate", default=0.15, type=float)
     parser.add_argument("--n_jobs", default=os.cpu_count(), type=int)
+    parser.add_argument("--seed", default=42, type=int)
 
     parser.add_argument(
         "--n_gram",
@@ -86,7 +87,7 @@ def compute_importance_from_args(args: Namespace) -> pd.DataFrame:
 
 
 def compute_importance(
-    model_name: str = "XGBoostClassifier",
+    model_name: str = "XGBClassifier",
     method: str = "DataSample",
     metric: str = "accuracy_score",
     dataset: Union[str, pd.DataFrame] = get_sample_dataframe(),
@@ -98,6 +99,7 @@ def compute_importance(
     is_regression: bool = False,
     n_jobs: int = os.cpu_count(),
     refit: bool = None,
+    seed = 41
 ) -> pd.DataFrame:
     """
     the main function that computes the feature importance based on the input arguments. 
@@ -152,6 +154,7 @@ def compute_importance(
         is_regression,
         n_jobs,
         refit=refit,
+        seed=seed
     )
     contrib = model.compute_contrib()
     return contrib

@@ -4,6 +4,7 @@ from concurrent.futures import ThreadPoolExecutor
 from concurrent.futures import as_completed
 from concurrent.futures import wait
 from typing import Union
+import random
 
 import numpy as np
 import pandas as pd
@@ -109,6 +110,9 @@ def get_model(model_name: str, is_m_output: bool):
         )
     return base_model
 
+def set_seed(seed):
+    random.seed(seed)
+    np.random.seed(seed)
 
 class Model:
     """
@@ -139,14 +143,16 @@ class Model:
         is_regression=False,
         n_jobs=os.cpu_count(),
         refit=None,
+        seed=None
     ) -> None:
         self._model = model_name
+        set_seed(seed)
         self._is_m_output = (not isinstance(targets, str)) and (len(targets) > 1)
         if isinstance(dataset, str):
             dataset = pd.read_csv(dataset, low_memory=False)
         self._dataset: Union[data.Data, data.DataFold, data.DataSample] = data.__dict__[
             method
-        ](dataset, targets, n_gram, val_rate, shuffle, n)
+        ](dataset, targets, n_gram, val_rate, shuffle, n, seed=seed)
         self._method = method
         self._metric = METRICS[metric]
         self._n_split = n
@@ -155,6 +161,7 @@ class Model:
         if refit is None:
             refit = method != "DataSample"
         self._refit = refit
+    
 
     def compute_contrib(self):
         """

@@ -31,6 +31,7 @@ class Data:
         val_rate=0.15,
         shuffle=False,
         data_sample=False,
+        seed=41
     ) -> None:
         if isinstance(targets, str):
             targets = [targets]
@@ -46,6 +47,7 @@ class Data:
         self._n_gram = n_gram
         self._val_rate = int(val_rate * len(self._dataset))
         self.data_sample = data_sample
+        self._seed = seed
         self._build_n_gram()
 
     def _build_n_gram(self):
@@ -103,8 +105,9 @@ class DataFold(Data):
         val_rate=0.15,
         shuffle=True,
         n=5,
+        seed = 41
     ) -> None:
-        super().__init__(dataset, targets, n_gram, val_rate, shuffle)
+        super().__init__(dataset, targets, n_gram, val_rate, shuffle, seed=seed)
         self._n_fold = n
         self._split = False
 
@@ -116,7 +119,7 @@ class DataFold(Data):
                 (X.loc[test_index], y.loc[test_index]),
             )
             for train_index, test_index in KFold(
-                self._n_fold, shuffle=self._shuffle
+                self._n_fold, shuffle=self._shuffle, random_state=self._seed
             ).split(X, y)
         ]
         return col, splits
