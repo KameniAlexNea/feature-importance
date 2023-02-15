@@ -57,7 +57,7 @@ def test_get_item(data):
 
 
 def test_data_folder(data):
-    data_cls = DataFold(data, "y", (1, 1), 0.15, True, n=5)
+    data_cls = DataFold(data, "y", (1, 1), 0.15, True, n=5, is_regression=True)
 
     n = 0
     for col, splits in data_cls:

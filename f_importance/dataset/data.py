@@ -8,20 +8,10 @@ from typing import Union
 
 import numpy as np
 import pandas as pd
-from sklearn.model_selection import KFold
+from sklearn.model_selection import StratifiedKFold, KFold
 
 
 class Data:
-    """
-    Data is a class for handling a dataset and its targets, it's used as a parent class for other two classes.
-    Data class takes in dataset, targets, n_gram, val_rate, and shuffle.
-
-        dataset is a DataFrame that needs to be handled
-        targets is a string or list of strings representing the target column(s) of the dataset
-        n_gram is a tuple representing the minimum and maximum number of columns to be used in a feature set
-        val_rate is a float representing the percentage of data to be used for validation
-        shuffle is a boolean representing whether the dataset should be shuffled or not
-    """
 
     def __init__(
         self,
@@ -33,6 +23,25 @@ class Data:
         data_sample=False,
         seed=41
     ) -> None:
+        """
+        Data is a class for handling a dataset and its targets, it's used as a parent class for other two classes.
+        Data class takes in dataset, targets, n_gram, val_rate, and shuffle.
+
+        :param dataset: is a DataFrame that needs to be handled
+        :type dataset: pd.DataFrame
+        :param targets: is a string or list of strings representing the target column(s) of the dataset
+        :type targets: Union[str, list]
+        :param n_gram: is a tuple representing the minimum and maximum number of columns to be used in a feature set, defaults to (1, 1)
+        :type n_gram: tuple, optional
+        :param val_rate: is a float representing the percentage of data to be used for validation, defaults to 0.15
+        :type val_rate: float, optional
+        :param shuffle: is a boolean representing whether the dataset should be shuffled or not, defaults to False
+        :type shuffle: bool, optional
+        :param data_sample: is DataSample strategy class, defaults to False
+        :type data_sample: bool, optional
+        :param seed: current seed of training process, defaults to 41
+        :type seed: int, optional
+        """
         if isinstance(targets, str):
             targets = [targets]
         self._targets = targets
@@ -51,6 +60,9 @@ class Data:
         self._build_n_gram()
 
     def _build_n_gram(self):
+        """
+        Build n_gram combination of column features
+        """
         grams = [[]]  # first index for base accuracy
         for i in range(self._n_gram[0], min(len(self._columns), self._n_gram[1] + 1)):
             grams.extend([list(k) for k in it.combinations(self._columns, i)])
@@ -71,6 +83,21 @@ class Data:
         return val
 
     def __getitem__(self, pos: int):
+        """
+        Get n_gram item at pos
+
+        :param pos: position of item
+        :type pos: int
+        :return: item
+        :rtype: Union(
+            tuple(
+                str, (np.ndarray, np.ndarray)
+            ),
+            tuple(
+                str, tuple(np.ndarray, np.ndarray), tuple(np.ndarray, np.ndarray)
+            )
+        )
+        """
         col: List[str] = self._grams[pos]
         X = self._dataset[
             [i for i in self._columns if (i not in col) or self.data_sample]
@@ -86,16 +113,6 @@ class Data:
 
 
 class DataFold(Data):
-    """
-    DataFold is a class that inherits from the Data class, it's used for handling cross-validation.
-    DataFold class takes in dataset, targets, n_gram, val_rate, shuffle, and n_fold.
-
-    n is an integer representing the number of folds for cross-validation
-
-    DataFold class has one method:
-        __getitem__ which returns the dataset and target column(s) based on the position of the iterator and
-    splits the dataset into folds according to the n_fold value.
-    """
 
     def __init__(
         self,
@@ -105,20 +122,33 @@ class DataFold(Data):
         val_rate=0.15,
         shuffle=True,
         n=5,
-        seed = 41
+        is_regression=False,
+        seed = 41,
     ) -> None:
         super().__init__(dataset, targets, n_gram, val_rate, shuffle, seed=seed)
         self._n_fold = n
         self._split = False
+        self._is_regression = is_regression
 
     def __getitem__(self, pos: int):
+        """
+        Get n_gram item at pos
+
+        :param pos: position of item
+        :type pos: int
+        :return: item
+        :rtype: tuple(
+            str, list[tuple(tuple(np.ndarray, np.ndarray), tuple(np.ndarray, np.ndarray))]
+        )
+        """
         col, X, y = super().__getitem__(pos)
+        clazz = KFold if self._is_regression else StratifiedKFold
         splits = [
             (
                 (X.loc[train_index], y.loc[train_index]),
                 (X.loc[test_index], y.loc[test_index]),
             )
-            for train_index, test_index in KFold(
+            for train_index, test_index in clazz(
                 self._n_fold, shuffle=self._shuffle, random_state=self._seed
             ).split(X, y)
         ]
@@ -126,18 +156,6 @@ class DataFold(Data):
 
 
 class DataSample(Data):
-    """
-
-    DataSample is a class that inherits from the Data class, it's used for handling random sampling.
-    DataSample class takes in dataset, targets, n_gram, val_rate, shuffle, and n_sample.
-
-    n is an integer representing the number of samples for random sampling
-
-    DataSample class has several methods:
-        __getitem__ which returns the dataset and target column(s) based on the position of the iterator and
-    splits the dataset into samples according to the n_sample value.
-        _get_split_X_y which splits the dataset into training and validation set randomly
-    """
 
     def __init__(
         self,
@@ -147,8 +165,10 @@ class DataSample(Data):
         val_rate=0.15,
         shuffle=True,
         n=5,
+        is_regression=False,
+        seed = 41,
     ) -> None:
-        super().__init__(dataset, targets, n_gram, val_rate, shuffle, data_sample=True)
+        super().__init__(dataset, targets, n_gram, val_rate, shuffle, data_sample=True, seed=seed)
         self._n_sample = n
         self._split = False
 

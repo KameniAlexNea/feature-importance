@@ -1,6 +1,5 @@
 """
-    In this package, we manipulate everything
-    about dataset
+    Manage everything related to dataset
 """
 
 __all__ = ["DataFold", "DataSample"]
