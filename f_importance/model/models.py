@@ -152,7 +152,7 @@ class Model:
             dataset = pd.read_csv(dataset, low_memory=False)
         self._dataset: Union[data.Data, data.DataFold, data.DataSample] = data.__dict__[
             method
-        ](dataset, targets, n_gram, val_rate, shuffle, n, seed=seed)
+        ](dataset, targets, n_gram, val_rate, shuffle, n, seed=seed, is_regression=is_regression)
         self._method = method
         self._metric = METRICS[metric]
         self._n_split = n

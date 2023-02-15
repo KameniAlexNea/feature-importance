@@ -25,7 +25,7 @@ def data_reg():
     return dat
 
 
-def test_init(data):
+def test_init(data: pd.DataFrame):
     model = Model(
         "XGBClassifier", "DataFold", "accuracy_score", data, "y", (1, 1), 0.15, True, 5
     )
@@ -36,7 +36,7 @@ def test_init(data):
     assert isinstance(model._dataset, dataset.DataFold)
 
 
-def test_init_multi_output(data):
+def test_init_multi_output(data: pd.DataFrame):
     model = Model(
         "XGBClassifier",
         "DataFold",
@@ -70,7 +70,7 @@ def test_init_multi_output(data):
     assert isinstance(chain.base_estimator, CLASSIFIERS["XGBClassifier"])
 
 
-def test_compute(data):
+def test_compute_xgbcls_fold(data: pd.DataFrame):
     model = Model(
         "XGBClassifier", "DataFold", "accuracy_score", data, "y", (1, 1), 0.15, True, 2
     )
@@ -78,7 +78,7 @@ def test_compute(data):
     assert len(contrib) == len(data.columns)
 
 
-def test_compute2(data):
+def test_compute_xgbcls_sample(data: pd.DataFrame):
     model = Model(
         "XGBClassifier",
         "DataSample",
@@ -95,7 +95,7 @@ def test_compute2(data):
     assert len(contrib) == len(data.columns) + n * (n - 1) // 2
 
 
-def test_compute3(data_reg):
+def test_compute_xgbreg_sample(data_reg: pd.DataFrame):
     model = Model(
         "XGBRegressor",
         "DataSample",
@@ -113,7 +113,7 @@ def test_compute3(data_reg):
     assert len(contrib) == 1 + n + n * (n - 1) // 2
 
 
-def test_compute4(data_reg):
+def test_compute_gbtreg_sample(data_reg: pd.DataFrame):
     model = Model(
         "GradientBoostingRegressor",
         "DataSample",
@@ -131,7 +131,7 @@ def test_compute4(data_reg):
     assert len(contrib) == 1 + n + n * (n - 1) // 2
 
 
-def test_compute5(data):
+def test_compute_lgbcls_sample(data: pd.DataFrame):
     data["A1"] = data["A1"].round()
     model = Model(
         "LGBMClassifier",
@@ -148,7 +148,7 @@ def test_compute5(data):
     assert len(contrib) == len(data.columns) - 1
 
 
-def test_compute6(data):
+def test_compute_dtcls_sample(data: pd.DataFrame):
     data["A1"] = data["A1"].round()
     model = Model(
         "DecisionTreeClassifier",
